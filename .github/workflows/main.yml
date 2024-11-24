@@ -1,45 +1,34 @@
 name: CI
 
-# Mengatur kapan workflow akan dijalankan
 on:
-  # Memungkinkan menjalankan workflow ini secara manual dari tab Actions
   workflow_dispatch:
 
 permissions:
   contents: write
 
-# Sebuah workflow terdiri dari satu atau lebih job yang bisa dijalankan secara berurutan atau paralel
 jobs:
   setup:
-    # Jenis runner yang akan digunakan untuk menjalankan job
     runs-on: ubuntu-latest
 
-    # Langkah-langkah yang akan dieksekusi dalam job ini
     steps:
-      # Memeriksa repository di bawah $GITHUB_WORKSPACE agar job dapat mengaksesnya
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      # Menyiapkan direktori dan menambahkan tool "repo"
       - name: Setup Repo
         run: |
           mkdir -p ~/.bin
-          curl https://storage.googleapis.com/git-repo-downloads/repo > ~/.bin/repo
+          curl https://storage.googleapis.com/git-repo-downloads/repo -o ~/.bin/repo
           chmod +x ~/.bin/repo
-          echo 'export PATH=$HOME/.bin:$PATH' >> ~/.bashrc
-          source ~/.bashrc
+          echo 'export PATH=$HOME/.bin:$PATH' >> $GITHUB_ENV
 
-      # Menginisialisasi repo
       - name: Initialize Repo
         run: repo init -u https://android.googlesource.com/platform/manifest --depth=1
 
-      # Sinkronisasi sub-repository yang dibutuhkan
       - name: Sync Repositories
         run: |
           repo sync frameworks/base
           repo sync system/core
 
-      # Menambahkan, commit, dan push perubahan ke GitHub
       - name: Push to GitHub
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
