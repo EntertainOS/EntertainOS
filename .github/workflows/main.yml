@@ -1,33 +1,51 @@
-# This is a basic workflow to help you get started with Actions
-
 name: CI
 
-# Controls when the workflow will run
+# Mengatur kapan workflow akan dijalankan
 on:
-  # Allows you to run this workflow manually from the Actions tab
+  # Memungkinkan menjalankan workflow ini secara manual dari tab Actions
   workflow_dispatch:
 
 permissions:
   contents: write
-# A workflow run is made up of one or more jobs that can run sequentially or in parallel
+
+# Sebuah workflow terdiri dari satu atau lebih job yang bisa dijalankan secara berurutan atau paralel
 jobs:
-  # This workflow contains a single job called "build"
   setup:
-    # The type of runner that the job will run on
+    # Jenis runner yang akan digunakan untuk menjalankan job
     runs-on: ubuntu-latest
 
-    # Steps represent a sequence of tasks that will be executed as part of the job
+    # Langkah-langkah yang akan dieksekusi dalam job ini
     steps:
-      # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
-      - uses: actions/checkout@v4
+      # Memeriksa repository di bawah $GITHUB_WORKSPACE agar job dapat mengaksesnya
+      - name: Checkout repository
+        uses: actions/checkout@v4
 
-      # Runs a single command using the runners shell
+      # Menyiapkan direktori dan menambahkan tool "repo"
       - name: Setup Repo
-        run: mkdir -p ~/.bin && PATH="${HOME}/.bin:${PATH}" && curl https://storage.googleapis.com/git-repo-downloads/repo > ~/.bin/repo
+        run: |
+          mkdir -p ~/.bin
+          curl https://storage.googleapis.com/git-repo-downloads/repo > ~/.bin/repo
+          chmod +x ~/.bin/repo
+          echo 'export PATH=$HOME/.bin:$PATH' >> ~/.bashrc
+          source ~/.bashrc
 
-      - run: repo init -u https://android.googlesource.com/platform/manifest --depth=1
+      # Menginisialisasi repo
+      - name: Initialize Repo
+        run: repo init -u https://android.googlesource.com/platform/manifest --depth=1
 
-      - run: repo sync frameworks/base && repo sync system/core
+      # Sinkronisasi sub-repository yang dibutuhkan
+      - name: Sync Repositories
+        run: |
+          repo sync frameworks/base
+          repo sync system/core
 
+      # Menambahkan, commit, dan push perubahan ke GitHub
       - name: Push to GitHub
-        run: git add . && git commit -m "Add files" && git push -u
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          git config --global user.name "GitHub Actions"
+          git config --global user.email "actions@github.com"
+          git add .
+          git commit -m "Add files" || echo "No changes to commit"
+          git push -u origin HEAD
